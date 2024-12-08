@@ -9,37 +9,43 @@ import (
 )
 
 type Forwarder struct {
-	src_host net.IP
-	src_port uint16
-	dst_host net.IP
-	dst_port uint16
-
-	conn net.Conn
+	src    net.TCPAddr
+	dst    net.TCPAddr
+	client net.Conn
+	remote net.Conn
 }
 
-func NewForwarder(src_host net.IP, src_port uint16, dst_host net.IP, dst_port uint16) Forwarder {
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", src_port))
+func NewForwarder(src_addr, dst_addr net.TCPAddr) Forwarder {
+	log.Println(fmt.Sprintf("Forwarding from port %d to %s", src_addr.Port, dst_addr.String()))
+	ln, err := net.Listen("tcp", src_addr.String())
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Println(fmt.Sprintf("Listening on port %d", src_port))
-	conn, err := ln.Accept()
+	client, err := ln.Accept()
 
 	if err != nil {
 		log.Fatal("Error accepting connection")
 	}
 
-	return Forwarder{src_host, src_port, dst_host, dst_port, conn}
+	remote, err := net.Dial("tcp", dst_addr.String())
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err != nil {
+		log.Fatal("Error accepting connection")
+	}
+	return Forwarder{src_addr, dst_addr, client, remote}
 }
 
 func (f Forwarder) Init() {
 	for {
-		message, err := bufio.NewReader(f.conn).ReadString('\n')
+		message, err := bufio.NewReader(f.client).ReadString('\n')
 		if err != nil {
 			log.Fatal(err)
 		}
 		log.Print("Message Received:", string(message))
 		newmessage := strings.ToUpper(message)
-		f.conn.Write([]byte(newmessage + "\n"))
+		f.remote.Write([]byte(newmessage + "\n"))
 	}
 }

@@ -5,9 +5,15 @@ import (
 )
 
 func main() {
-	src_ip := net.ParseIP("127.0.0.1")
-	dst_ip := net.ParseIP("127.0.0.1")
+	src_addr := net.TCPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: 8080,
+	}
+	dst_addr := net.TCPAddr{
+		IP:   net.ParseIP("127.0.0.1"),
+		Port: 8081,
+	}
 
-	f := NewForwarder(src_ip, 8080, dst_ip, 8081)
+	f := NewForwarder(src_addr, dst_addr)
 	f.Init()
 }
