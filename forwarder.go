@@ -13,6 +13,15 @@ type Forwarder struct {
 	dst    net.TCPAddr
 	client net.Conn
 	remote net.Conn
+	key    []byte
+}
+
+func xor(input []byte, key []byte) []byte {
+	output := make([]byte, len(input))
+	for i := 0; i < len(input); i++ {
+		output[i] = input[i] ^ key[i%len(key)]
+	}
+	return output
 }
 
 func NewForwarder(src_addr, dst_addr net.TCPAddr) Forwarder {
@@ -35,17 +44,21 @@ func NewForwarder(src_addr, dst_addr net.TCPAddr) Forwarder {
 	if err != nil {
 		log.Fatal("Error accepting connection")
 	}
-	return Forwarder{src_addr, dst_addr, client, remote}
+
+	key := []byte("password")
+
+	return Forwarder{src_addr, dst_addr, client, remote, key}
 }
 
 func (f Forwarder) Init() {
 	for {
 		message, err := bufio.NewReader(f.client).ReadString('\n')
+		message = string(xor([]byte(message), f.key))
 		if err != nil {
 			log.Fatal(err)
 		}
 		log.Print("Message Received:", string(message))
 		newmessage := strings.ToUpper(message)
-		f.remote.Write([]byte(newmessage + "\n"))
+		f.remote.Write(xor([]byte(newmessage+"\n"), f.key))
 	}
 }
