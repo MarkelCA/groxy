@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
@@ -48,4 +49,36 @@ func (f Forwarder) Init() {
 		newmessage := strings.ToUpper(message)
 		f.remote.Write([]byte(newmessage + "\n"))
 	}
+}
+
+func NewSecureForwarder(src_addr, dst_addr net.TCPAddr) Forwarder {
+	cert, err := tls.LoadX509KeyPair("server-cert.pem", "server-key.pem")
+	if err != nil {
+		log.Fatalf("Failed to load certificate: %v", err)
+	}
+
+	// Set up TLS configuration
+	tlsConfig := &tls.Config{
+		Certificates: []tls.Certificate{cert},
+	}
+	ln, err := tls.Listen("tcp", src_addr.String(), tlsConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	client, err := ln.Accept()
+
+	if err != nil {
+		log.Fatal("Error accepting connection")
+	}
+
+	remote, err := tls.Dial("tcp", dst_addr.String(), tlsConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	if err != nil {
+		log.Fatal("Error accepting connection")
+	}
+
+	return Forwarder{src_addr, dst_addr, client, remote}
 }

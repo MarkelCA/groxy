@@ -14,6 +14,7 @@ func main() {
 		Port: 8081,
 	}
 
+	// f := NewSecureForwarder(src_addr, dst_addr)
 	f := NewForwarder(src_addr, dst_addr)
 	f.Init()
 }
